@@ -97,12 +97,22 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 
         char folder_rahasia[256];
         sprintf(folder_rahasia, "%s%srahasia", basedir, get_relative_dir(path));
-        //printf("The file in folder %s\n", folder_rahasia);
+
+        // Create folder rahasia
         DIR *fol_stat = opendir(folder_rahasia);
-        if(fol_stat == NULL)
+        if(fol_stat == NULL) // Knock knock?
             mkdir(folder_rahasia, 0755);
 
-        return 0;
+        printf("Folder rahasia di %s\n", folder_rahasia);
+        char command[512];
+        // Move all .ditandai to rahasia/
+        sprintf(command, "mv %s/../*.ditandai %s", folder_rahasia, folder_rahasia);
+        system(command);
+        // .ditandai file should not be able rwe
+        sprintf(command, "chmod 000 %s/*.ditandai", folder_rahasia);
+        system(command);
+
+        return -1;
     }
     if(!strcmp(path, "/")) sprintf(newPath, "%s", basedir);
     else sprintf(newPath, "%s%s", basedir, path);
