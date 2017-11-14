@@ -18,6 +18,13 @@ static char* check_ext(char* filename)
     return dot+1;
 }
 
+static char* get_relative_dir(char* filename)
+{
+    char *slash = strrchr(filename, '/');
+    *(slash+1) = '\0';
+    return filename;
+}
+
 static int xmp_getattr(const char *path, struct stat *stbuf)
 {
     int res;
@@ -80,11 +87,21 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
     {
         char newName[256];
         char oldName[256];
+
         sprintf(newName, "%s%s.ditandai", basedir, path);
         sprintf(oldName, "%s%s", basedir, path);
+
         printf("File name : %s to %s\n", oldName, newName);
-        system("zenity --error --text='Error file extension'");
+        system("zenity --error --text='Terjadi kesalahan! File berisi konten berbahaya.'"); // Show dialog box
         rename(oldName, newName);
+
+        char folder_rahasia[256];
+        sprintf(folder_rahasia, "%s%srahasia", basedir, get_relative_dir(path));
+        //printf("The file in folder %s\n", folder_rahasia);
+        DIR *fol_stat = opendir(folder_rahasia);
+        if(fol_stat == NULL)
+            mkdir(folder_rahasia, 0755);
+
         return 0;
     }
     if(!strcmp(path, "/")) sprintf(newPath, "%s", basedir);
