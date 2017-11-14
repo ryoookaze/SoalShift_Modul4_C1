@@ -131,6 +131,39 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 	return res;
 }
 
+static int xmp_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
+{
+    printf("TEST WRITE\n");
+	int fd;
+	int res;
+
+	(void) fi;
+
+	fd = open(path, O_WRONLY);
+	if (fd == -1)
+		return -errno;
+
+	res = write(fd, buf, size);
+
+	if (res == -1)
+		res = -errno;
+
+	close(fd);
+	return res;
+}
+
+static int xmp_utimens(const char *path, const struct timespec ts[2])
+{
+    int res;
+
+	res = utimensat(0, path, ts, AT_SYMLINK_NOFOLLOW);
+
+	if(res == -1)
+		return -errno;
+
+	return 0;
+}
+
 static int xmp_rename(const char *path, const char *newpath)
 {
     char fnew[1024], kol[1024];
@@ -147,11 +180,75 @@ static int xmp_rename(const char *path, const char *newpath)
     return res;
 }
 
+static int xmp_chown(const char *path, uid_t uid, gid_t gid)
+{
+	int res;
+
+	res = lchown(path, uid, gid);
+
+	if(res == -1)
+		return -errno;
+
+	return 0;
+}
+
+static int xmp_chmod(const char *path, mode_t mode)
+{
+	int res;
+
+	res = chmod(path, mode);
+
+	if(res == -1)
+		return -errno;
+
+	return 0;
+}
+
+static int xmp_open(const char *path, struct fuse_file_info *fi)
+{
+	int res;
+    char newPath[512];
+    sprintf(newPath, "%s%s", basedir, path);
+
+	res = open(path, fi->flags);
+
+	if(res == -1)
+		return -errno;
+
+	close(res);
+
+	return 0;
+}
+
+static int xmp_mknod(const char *path, mode_t mode, dev_t rdev)
+{
+	int res;
+    char newPath[512];
+    sprintf(newPath, "%s%s", basedir, path);
+
+	if(S_ISREG(mode)) {
+		res = open(newPath, O_CREAT | O_EXCL | O_WRONLY, mode);
+		if (res >= 0) res = close(res);
+	}
+	else if (S_ISFIFO(mode)) res = mkfifo(newPath, mode);
+	else res = mknod(newPath, mode, rdev);
+
+	if(res == -1)
+		return -errno;
+
+	return 0;
+}
+
 static struct fuse_operations xmp_oper = {
 	.getattr	= xmp_getattr,
 	.readdir	= xmp_readdir,
 	.read		= xmp_read,
-    .rename     = xmp_rename,
+    .write      = xmp_write,
+    .utimens    = xmp_utimens,
+    .chown      = xmp_chown,
+    .chmod      = xmp_chmod,
+    .open       = xmp_open,
+    .mknod      = xmp_mknod,
 };
 
 int main(int argc, char *argv[])
