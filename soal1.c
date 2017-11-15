@@ -136,10 +136,12 @@ static int xmp_write(const char *path, const char *buf, size_t size, off_t offse
     printf("TEST WRITE\n");
 	int fd;
 	int res;
+    char newPath[512];
+    sprintf(newPath, "%s%s", basedir, path);
 
 	(void) fi;
 
-	fd = open(path, O_WRONLY);
+	fd = open(newPath, O_WRONLY);
 	if (fd == -1)
 		return -errno;
 
@@ -155,8 +157,10 @@ static int xmp_write(const char *path, const char *buf, size_t size, off_t offse
 static int xmp_utimens(const char *path, const struct timespec ts[2])
 {
     int res;
+    char newPath[512];
+    sprintf(newPath, "%s%s", basedir, path);
 
-	res = utimensat(0, path, ts, AT_SYMLINK_NOFOLLOW);
+	res = utimensat(0, newPath, ts, AT_SYMLINK_NOFOLLOW);
 
 	if(res == -1)
 		return -errno;
@@ -164,27 +168,13 @@ static int xmp_utimens(const char *path, const struct timespec ts[2])
 	return 0;
 }
 
-static int xmp_rename(const char *path, const char *newpath)
-{
-    char fnew[1024], kol[1024];
-    char *new = ".receh";
-    strcpy(fnew, path);
-    strcpy(kol, path);
-    strcat(fnew, new);
-
-    int res = rename(path, fnew);
-
-    if(res==-1)
-        return -errno;
-
-    return res;
-}
-
 static int xmp_chown(const char *path, uid_t uid, gid_t gid)
 {
 	int res;
+    char newPath[512];
+    sprintf(newPath, "%s%s", basedir, path);
 
-	res = lchown(path, uid, gid);
+	res = lchown(newPath, uid, gid);
 
 	if(res == -1)
 		return -errno;
@@ -195,8 +185,10 @@ static int xmp_chown(const char *path, uid_t uid, gid_t gid)
 static int xmp_chmod(const char *path, mode_t mode)
 {
 	int res;
+    char newPath[512];
+    sprintf(newPath, "%s%s", basedir, path);
 
-	res = chmod(path, mode);
+	res = chmod(newPath, mode);
 
 	if(res == -1)
 		return -errno;
@@ -210,7 +202,7 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
     char newPath[512];
     sprintf(newPath, "%s%s", basedir, path);
 
-	res = open(path, fi->flags);
+	res = open(newPath, fi->flags);
 
 	if(res == -1)
 		return -errno;
@@ -239,6 +231,21 @@ static int xmp_mknod(const char *path, mode_t mode, dev_t rdev)
 	return 0;
 }
 
+static int xmp_rename(const char *from, const char *to)
+{
+    int res;
+    char newFrom[512];
+    char newTo[512];
+    sprintf(newFrom, "%s%s", basedir, from);
+    sprintf(newTo, "%s%s", basedir, to);
+
+    res = rename(newFrom, newTo);
+    if (res == -1)
+        return -errno;
+
+    return 0;
+}
+
 static struct fuse_operations xmp_oper = {
 	.getattr	= xmp_getattr,
 	.readdir	= xmp_readdir,
@@ -249,6 +256,7 @@ static struct fuse_operations xmp_oper = {
     .chmod      = xmp_chmod,
     .open       = xmp_open,
     .mknod      = xmp_mknod,
+    .rename     = xmp_rename,
 };
 
 int main(int argc, char *argv[])
