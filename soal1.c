@@ -133,7 +133,7 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 
 static int xmp_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
 {
-    printf("TEST WRITE\n");
+    printf("\n\nTEST WRITE %s\n\n", path);
 	int fd;
 	int res;
     char newPath[512];
@@ -237,7 +237,10 @@ static int xmp_rename(const char *from, const char *to)
     char newFrom[512];
     char newTo[512];
     sprintf(newFrom, "%s%s", basedir, from);
-    sprintf(newTo, "%s%s", basedir, to);
+    sprintf(newTo, "%s%s.baru", basedir, to);
+
+    // Debug purpose
+    printf("RENAMING %s TO %s\n", newFrom, newTo);
 
     res = rename(newFrom, newTo);
     if (res == -1)
@@ -247,9 +250,9 @@ static int xmp_rename(const char *from, const char *to)
 }
 
 static struct fuse_operations xmp_oper = {
-	.getattr	= xmp_getattr,
-	.readdir	= xmp_readdir,
-	.read		= xmp_read,
+    .getattr	= xmp_getattr,
+    .readdir	= xmp_readdir,
+    .read		= xmp_read,
     .write      = xmp_write,
     .utimens    = xmp_utimens,
     .chown      = xmp_chown,
