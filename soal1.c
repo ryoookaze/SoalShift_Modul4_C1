@@ -25,6 +25,13 @@ static char* get_relative_dir(const char* filename)
     return filename;
 }
 
+static char* get_filename(char* filename)
+{
+    char *dot = strrchr(filename, '/');
+
+    return dot+1;
+}
+
 static int xmp_getattr(const char *path, struct stat *stbuf)
 {
     int res;
@@ -32,51 +39,51 @@ static int xmp_getattr(const char *path, struct stat *stbuf)
     char newPath[1024];
     sprintf(newPath, "%s%s", basedir, path);
 
-	res = lstat(newPath, stbuf);
-	if (res == -1)
-	    return -errno;
+    res = lstat(newPath, stbuf);
+    if (res == -1)
+        return -errno;
     printf("Attribute for %s\n", newPath);
 
-	return 0;
+    return 0;
 }
 
 static int xmp_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 		       off_t offset, struct fuse_file_info *fi)
 {
-	DIR *dp;
-	struct dirent *de;
+    DIR *dp;
+    struct dirent *de;
 
-	(void) offset;
-	(void) fi;
+    (void) offset;
+    (void) fi;
 
     char newPath[1024];
     if(!strcmp(path, "/")) sprintf(newPath, "%s", basedir);
     else sprintf(newPath, "%s%s", basedir, path);
 
-	dp = opendir(newPath);
-	if (dp == NULL)
-		return -errno;
+    dp = opendir(newPath);
+    if (dp == NULL)
+        return -errno;
 
     printf("Opening folder : %s\n", newPath);
-	while ((de = readdir(dp)) != NULL) {
-		struct stat st;
-		memset(&st, 0, sizeof(st));
-		st.st_ino = de->d_ino;
-		st.st_mode = de->d_type << 12;
-		if (filler(buf, de->d_name, &st, 0))
-			break;
+    while ((de = readdir(dp)) != NULL) {
+        struct stat st;
+        memset(&st, 0, sizeof(st));
+        st.st_ino = de->d_ino;
+        st.st_mode = de->d_type << 12;
+        if (filler(buf, de->d_name, &st, 0))
+            break;
         printf("Listing file : %s/%s\n", newPath, de->d_name);
-	}
+    }
 
-	closedir(dp);
-	return 0;
+    closedir(dp);
+    return 0;
 }
 
 static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 		    struct fuse_file_info *fi)
 {
-	int fd;
-	int res;
+    int fd;
+    int res;
     char newPath[1024];
 
     char ext[10];
@@ -87,48 +94,56 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
     {
         char newName[256];
         char oldName[256];
+        char fileName[256];
+        char folder[256];
 
         sprintf(newName, "%s%s.ditandai", basedir, path);
         sprintf(oldName, "%s%s", basedir, path);
+        strcpy(fileName, oldName);
+        strcpy(fileName, get_filename(fileName));
 
         printf("File name : %s to %s\n", oldName, newName);
         system("zenity --error --text='Terjadi kesalahan! File berisi konten berbahaya.'"); // Show dialog box
         rename(oldName, newName);
 
+        sprintf(folder, "%s%s", basedir, get_relative_dir(path));
+
         char folder_rahasia[256];
-        sprintf(folder_rahasia, "%s%srahasia", basedir, get_relative_dir(path));
+        sprintf(folder_rahasia, "%srahasia", folder);
+
+        strcat(folder, "/rahasia/");
+        strcat(folder, fileName);
+        strcat(folder, ".ditandai");
 
         // Create folder rahasia
         DIR *fol_stat = opendir(folder_rahasia);
         if(fol_stat == NULL) // Knock knock?
             mkdir(folder_rahasia, 0755);
 
-        printf("Folder rahasia di %s\n", folder_rahasia);
-        char command[512];
         // Move all .ditandai to rahasia/
-        sprintf(command, "mv %s/../*.ditandai %s", folder_rahasia, folder_rahasia);
-        system(command);
+        rename(newName, folder);
+
+
         // .ditandai file should not be able rwe
-        sprintf(command, "chmod 000 %s/*.ditandai", folder_rahasia);
-        system(command);
+        chmod(folder, 0000);
 
         return -1;
     }
     if(!strcmp(path, "/")) sprintf(newPath, "%s", basedir);
     else sprintf(newPath, "%s%s", basedir, path);
 
-	(void) fi;
-	fd = open(newPath, O_RDONLY);
-	if (fd == -1)
-		return -errno;
+    (void) fi;
+    fd = open(newPath, O_RDONLY);
+    if (fd == -1)
+        return -errno;
 
-	res = pread(fd, buf, size, offset);
-	if (res == -1)
-		res = -errno;
+    res = pread(fd, buf, size, offset);
+    if (res == -1)
+        res = -errno;
     printf("Reading file : %s\n", newPath);
 
-	close(fd);
-	return res;
+    close(fd);
+    return res;
 }
 
 static int xmp_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
