@@ -18,7 +18,7 @@ static char* check_ext(char* filename)
     return dot+1;
 }
 
-static char* get_relative_dir(char* filename)
+static char* get_relative_dir(const char* filename)
 {
     char *slash = strrchr(filename, '/');
     *(slash+1) = '\0';
@@ -236,8 +236,20 @@ static int xmp_rename(const char *from, const char *to)
     int res;
     char newFrom[512];
     char newTo[512];
+    char simpanan_dir[1024];
+    char filename[128];
+    strcpy(filename, from); // Copy orig filename, else will fail
+
+    // Get relative dir, where folder simpanan should be
+    // and create them folder ayy
+    sprintf(simpanan_dir, "%s%s/simpanan", basedir, get_relative_dir(filename));
+    printf("SIMPANAN IS %s\n", simpanan_dir);
+    DIR *sim = opendir(simpanan_dir);
+    if(sim == NULL)
+        mkdir(simpanan_dir, 0755);
+
     sprintf(newFrom, "%s%s", basedir, from);
-    sprintf(newTo, "%s%s.baru", basedir, to);
+    sprintf(newTo, "%s/simpanan%s", basedir, to);
 
     // Debug purpose
     printf("RENAMING %s TO %s\n", newFrom, newTo);
@@ -248,6 +260,20 @@ static int xmp_rename(const char *from, const char *to)
 
     return 0;
 }
+
+static int xmp_unlink(const char *path)
+{
+    int res;
+    char newPath[512];
+    sprintf(newPath, "%s%s", basedir, path);
+
+    res = unlink(newPath);
+    if (res == -1)
+        return -errno;
+
+    return 0;
+}
+
 
 static struct fuse_operations xmp_oper = {
     .getattr	= xmp_getattr,
@@ -260,6 +286,7 @@ static struct fuse_operations xmp_oper = {
     .open       = xmp_open,
     .mknod      = xmp_mknod,
     .rename     = xmp_rename,
+    .unlink     = xmp_unlink,
 };
 
 int main(int argc, char *argv[])
