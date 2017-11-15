@@ -39,6 +39,24 @@ static int xmp_getattr(const char *path, struct stat *stbuf)
     char newPath[1024];
     sprintf(newPath, "%s%s", basedir, path);
 
+    char *key = strstr(path, "(copy)");
+
+    if(key != NULL)
+    {
+        char ext[10];
+        char temp[512];
+        strcpy(temp, newPath);
+
+        strcpy(ext, check_ext(path));
+        memcpy(temp+strlen(temp)-strlen(ext)-2-6,
+                temp+strlen(temp)-strlen(ext)-1, strlen(ext)+2);
+        strcat(temp, ".copy");
+
+        printf("WE ARE MAKING COPY OF %s\n", temp);
+        strcpy(newPath, temp);
+    }
+
+
     res = lstat(newPath, stbuf);
     if (res == -1)
         return -errno;
@@ -85,6 +103,24 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
     int fd;
     int res;
     char newPath[1024];
+
+    char *key = strstr(path, "(copy)");
+
+    if(key != NULL)
+    {
+        char ext[10];
+        char temp[512];
+        strcpy(temp, newPath);
+
+        strcpy(ext, check_ext(path));
+        memcpy(temp+strlen(temp)-strlen(ext)-2-6,
+                temp+strlen(temp)-strlen(ext)-1, strlen(ext)+2);
+        strcat(temp, ".copy");
+
+        printf("WE ARE MAKING COPY OF %s\n", temp);
+        strcpy(newPath, temp);
+    }
+    
 
     char ext[10];
     strcpy(ext, check_ext(path));
@@ -153,6 +189,23 @@ static int xmp_write(const char *path, const char *buf, size_t size, off_t offse
 	int res;
     char newPath[512];
     sprintf(newPath, "%s%s", basedir, path);
+ 
+    char *key = strstr(path, "(copy)");
+
+    if(key != NULL)
+    {
+        char ext[10];
+        char temp[512];
+        strcpy(temp, newPath);
+
+        strcpy(ext, check_ext(path));
+        memcpy(temp+strlen(temp)-strlen(ext)-2-6,
+                temp+strlen(temp)-strlen(ext)-1, strlen(ext)+2);
+        strcat(temp, ".copy");
+
+        printf("WE ARE MAKING COPY OF %s\n", temp);
+        strcpy(newPath, temp);
+    }
 
 	(void) fi;
 
@@ -217,6 +270,23 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
     char newPath[512];
     sprintf(newPath, "%s%s", basedir, path);
 
+    char *key = strstr(path, "(copy)");
+
+    if(key != NULL)
+    {
+        char ext[10];
+        char temp[512];
+        strcpy(temp, newPath);
+
+        strcpy(ext, check_ext(path));
+        memcpy(temp+strlen(temp)-strlen(ext)-2-6,
+                temp+strlen(temp)-strlen(ext)-1, strlen(ext)+2);
+        strcat(temp, ".copy");
+
+        printf("WE ARE OPENING COPY OF %s\n", temp);
+        strcpy(newPath, temp);
+    }
+
 	res = open(newPath, fi->flags);
 
 	if(res == -1)
@@ -232,6 +302,25 @@ static int xmp_mknod(const char *path, mode_t mode, dev_t rdev)
 	int res;
     char newPath[512];
     sprintf(newPath, "%s%s", basedir, path);
+
+    printf("\t\t\MKNOD on %s\n", path);
+    
+    char *key = strstr(path, "(copy)");
+
+    if(key != NULL)
+    {
+        char ext[10];
+        char temp[512];
+        strcpy(temp, newPath);
+
+        strcpy(ext, check_ext(path));
+        memcpy(temp+strlen(temp)-strlen(ext)-2-6,
+                temp+strlen(temp)-strlen(ext)-1, strlen(ext)+2);
+        strcat(temp, ".copy");
+
+        printf("WE ARE MAKING COPY OF %s\n", temp);
+        strcpy(newPath, temp);
+    }
 
 	if(S_ISREG(mode)) {
 		res = open(newPath, O_CREAT | O_EXCL | O_WRONLY, mode);
